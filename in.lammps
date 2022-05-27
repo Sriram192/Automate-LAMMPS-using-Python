@@ -1,0 +1,68 @@
+# LAMMPS input script for GNP
+# Generated on 21/6/2021
+units lj
+dimension 3
+atom_style bond
+read_restart /home/user/SACHIN/2_tether/A_NP_NP/MD_LAMMPS/ifinal.restart
+read_dump /home/user/SACHIN/2_tether/A_NP_NP/MD_LAMMPS/isystem.dump 100 x y z
+# ----------------------------------
+## BOND
+# ----------------------------------
+bond_style fene
+bond_coeff 1 30.00 1.50 1.00 1.00
+
+# ----------------------------------
+## PAIR INTERACTION
+# ----------------------------------
+pair_style lj/cut 10.0
+pair_coeff 1 1 1.00000000 1.00000000 1.12246
+pair_coeff 1 2 1.00000000 1.00000000 1.12246
+pair_coeff 1 3 1.00000000 2.00000000 5.00000
+pair_coeff 2 2 1.00000000 1.00000000 1.12246
+pair_coeff 2 3 1.00000000 2.00000000 2.50000
+pair_coeff 3 3 1.00000000 3.00000000 7.50000
+
+
+# --------------------------------
+## GROUP DEFINE
+#---------------------------------
+group NP type 1 3
+group chain type 2
+group nps type 3
+# --------------------------------
+special_bonds fene
+pair_modify shift yes
+neigh_modify check yes delay 1 
+#---------------------------------
+## VELOCITY
+# -------------------------------
+velocity all create ${Temperature} 234875 mom yes rot yes dist gaussian
+## MINIMIZE & FIX
+# ----------------------------------
+#minimize 1.0e-4 1.0e-6 100 1000
+#log log${Temperature}.lammps
+fix 0 NP rigid/nve molecule
+fix 1 chain nve  #temp 1.0 1.0 10.0 
+fix 2 all langevin ${Temperature} ${Temperature} 10.0 48279
+fix 3 all momentum 100 linear 1 1 1
+##----------------------------------
+## RUN 
+#----------------------------------
+run_style verlet
+timestep  0.005
+thermo    100
+thermo_style custom step temp epair emol ke pe press vol
+thermo_modify norm no
+run       1000000
+#----------------------------------
+## VARIABLE DEFINE
+#----------------------------------
+variable e equal epair
+variable t equal step
+variable m equal emol
+fix sys_energy all print 2000 "$t $e $m" file energy_${Temperature}.dat screen no
+dump      1 all custom 10000 /home/user/SACHIN/2_tether/A_NP_NP/MD_LAMMPS/T_${Temperature}/system.dump id mol type x y z vx vy vz
+dump      2 NP custom 2000 /home/user/SACHIN/2_tether/A_NP_NP/MD_LAMMPS/T_${Temperature}/dump_${Temperature}/frame.*.dump id mol type x y z vx vy vz
+run       1000000
+write_data system_equi${Temperature}.data
+write_restart equifinal${Temperature}.restart

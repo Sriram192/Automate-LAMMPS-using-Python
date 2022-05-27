@@ -1,0 +1,59 @@
+# LAMMPS input script for GNP
+# Generated on 21/6/2021
+units lj
+dimension 3
+atom_style bond
+read_data 50p.data
+# ----------------------------------
+## BOND
+# ----------------------------------
+bond_style fene
+bond_coeff 1 30.00 1.50 1.00 1.00
+
+# ----------------------------------
+## PAIR INTERACTION
+# ----------------------------------
+pair_style lj/cut 10.0
+pair_coeff 1 1 1.00000000 1.00000000 1.12246
+pair_coeff 1 2 1.00000000 1.00000000 1.12246
+pair_coeff 1 3 1.00000000 2.00000000 2.24400
+pair_coeff 2 2 1.00000000 1.00000000 1.12246
+pair_coeff 2 3 1.00000000 2.00000000 2.24491
+pair_coeff 3 3 1.00000000 3.00000000 7.50000
+
+
+# --------------------------------
+## GROUP DEFINE
+#---------------------------------
+group NP type 1 3
+group chain type 2
+group nps type 3
+# --------------------------------
+special_bonds fene
+pair_modify shift yes
+neigh_modify check yes delay 1 
+#---------------------------------
+## VELOCITY
+# -------------------------------
+velocity all create ${Temperature} 234875 mom yes rot yes dist gaussian
+## MINIMIZE & FIX
+# ----------------------------------
+minimize 1.0e-4 1.0e-6 100 1000
+fix 0 NP rigid molecule
+fix 1 chain npt temp 1.0 1.0 10.0 iso 1.0 1.0 100.0 
+fix 3 all momentum 100 linear 1 1 1
+##----------------------------------
+## RUN 
+#----------------------------------
+run_style verlet
+timestep  0.005
+thermo    100
+thermo_style custom step temp epair emol ke pe press vol
+thermo_modify norm no
+#----------------------------------
+## VARIABLE DEFINE
+#----------------------------------
+dump      1 all custom 10 isystem.dump id mol type x y z vx vy vz
+run       100000
+write_data system_equi.data
+write_restart ifinal.restart
